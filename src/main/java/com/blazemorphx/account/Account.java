@@ -15,6 +15,9 @@ public final class Account {
 	public String encryptedToken = "";
 	public String encryptedRefresh = "";
 	public String authJson = "";
+	public String xuid = "";
+	public String clientId = "";
+	public boolean launcher = false;
 	public long lastUsed;
 
 	public boolean isPremium() {
@@ -22,6 +25,9 @@ public final class Account {
 	}
 
 	public String badge() {
+		if (launcher) {
+			return isPremium() ? "LAUNCHER" : "LAUNCHER / OFFLINE";
+		}
 		return isPremium() ? "PREMIUM" : "OFFLINE";
 	}
 }

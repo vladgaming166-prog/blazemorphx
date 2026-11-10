@@ -2,21 +2,15 @@ package com.blazemorphx.gui;
 
 import com.blazemorphx.BlazeMorphx;
 import com.blazemorphx.account.AccountManager;
-import com.blazemorphx.config.ConfigManager;
 import com.blazemorphx.customization.BackgroundManager;
-import com.blazemorphx.customization.FontManager;
-import com.blazemorphx.customization.ThemeManager;
-import com.blazemorphx.render.Animations;
-import com.blazemorphx.render.BlazeLogo;
-import com.blazemorphx.render.GlassRenderer;
 import com.blazemorphx.render.NotificationRenderer;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.text.Text;
 
 public abstract class BlazeScreen extends Screen {
 	protected final Screen parent;
-	private float intro;
 
 	protected BlazeScreen(String title, Screen parent) {
 		super(Text.literal(title));
@@ -25,28 +19,23 @@ public abstract class BlazeScreen extends Screen {
 
 	@Override
 	public void renderBackground(DrawContext context, int mouseX, int mouseY, float deltaTicks) {
-		BackgroundManager.get().render(context, width, height, deltaTicks);
-		intro = Animations.approach(intro, 1f, deltaTicks);
+		if (this instanceof MainMenuScreen) {
+			BackgroundManager.get().render(context, width, height, deltaTicks);
+		} else {
+			super.renderBackground(context, mouseX, mouseY, deltaTicks);
+		}
 	}
 
 	@Override
 	public void render(DrawContext context, int mouseX, int mouseY, float deltaTicks) {
 		super.render(context, mouseX, mouseY, deltaTicks);
-		drawChrome(context);
-		NotificationRenderer.get().render(context);
-	}
-
-	protected void drawChrome(DrawContext context) {
-		GlassRenderer.panel(context, 16, 10, width - 32, 36, ThemeManager.panelStrong(), ThemeManager.glassBorder(), 0.5f);
-		if (ConfigManager.get().showLogo) {
-			BlazeLogo.draw(context, 40, 14, 28, Animations.pulse(System.currentTimeMillis(), 0.35f));
-		}
-		FontManager.get().draw(context, BlazeMorphx.NAME.toUpperCase(), 62, 22, ThemeManager.accent());
-		FontManager.get().draw(context, getTitle().getString(), width / 2 - FontManager.get().width(getTitle().getString()) / 2, 22, ThemeManager.text());
+		context.drawCenteredTextWithShadow(textRenderer, this.title, width / 2, 15, 0xFFFFFFFF);
 		var account = AccountManager.get().selected();
-		String session = account == null ? "No account" : account.username + "  " + account.badge();
-		FontManager.get().draw(context, session, width - 28 - FontManager.get().width(session), 22, ThemeManager.muted());
-		FontManager.get().draw(context, "v" + BlazeMorphx.VERSION + " · 1.21.11", 20, height - 16, ThemeManager.muted());
+		String status = account == null
+			? BlazeMorphx.NAME + "  ·  no account selected"
+			: BlazeMorphx.NAME + "  ·  " + account.username + " [" + account.badge() + "]";
+		context.drawTextWithShadow(textRenderer, status, 8, height - 12, 0xFFA0A0A0);
+		NotificationRenderer.get().render(context);
 	}
 
 	@Override
@@ -62,6 +51,14 @@ public abstract class BlazeScreen extends Screen {
 	}
 
 	protected int contentTop() {
-		return 56;
+		return 40;
+	}
+
+	protected ButtonWidget button(int x, int y, int w, int h, String label, Runnable action) {
+		return ButtonWidget.builder(Text.literal(label), btn -> action.run()).dimensions(x, y, w, h).build();
+	}
+
+	protected ButtonWidget backButton() {
+		return button(width / 2 - 100, height - 28, 200, 20, "Done", this::close);
 	}
 }

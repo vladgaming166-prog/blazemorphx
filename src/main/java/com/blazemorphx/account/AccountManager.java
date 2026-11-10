@@ -2,8 +2,6 @@ package com.blazemorphx.account;
 
 import com.blazemorphx.BlazeMorphx;
 import com.blazemorphx.config.ConfigManager;
-import com.blazemorphx.mixin.MinecraftClientAccessor;
-import com.blazemorphx.render.NotificationRenderer;
 import com.blazemorphx.util.CryptoUtil;
 import com.google.gson.reflect.TypeToken;
 import net.minecraft.client.MinecraftClient;
@@ -16,17 +14,29 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
 
 public final class AccountManager {
 	private static final AccountManager INSTANCE = new AccountManager();
 	private final List<Account> accounts = new ArrayList<>();
+	private final SessionSwitcher switcher = new SessionSwitcher();
 	private Account selected;
+	private boolean switching;
 
 	private AccountManager() {
 	}
 
 	public static AccountManager get() {
 		return INSTANCE;
+	}
+
+	public SessionSwitcher switcher() {
+		return switcher;
+	}
+
+	public boolean isSwitching() {
+		return switching;
 	}
 
 	public synchronized void load() {
@@ -47,17 +57,26 @@ public final class AccountManager {
 				}
 			}
 		} catch (Exception e) {
-			BlazeMorphx.LOGGER.warn("Failed to load accounts");
+			BlazeMorphx.LOGGER.warn("Failed to load accounts", e);
 		}
-		try {
-			seedCurrentSession();
-			String last = ConfigManager.get().lastAccountId;
-			selected = byId(last).orElse(accounts.isEmpty() ? null : accounts.getFirst());
-			if (selected != null) {
-				select(selected, false);
+		MinecraftClient client = MinecraftClient.getInstance();
+		if (client != null) {
+			switcher.captureLauncher(client);
+			seedCurrentSession(client);
+			Session session = client.getSession();
+			if (session != null) {
+				selected = byUsername(session.getUsername()).orElse(accounts.isEmpty() ? null : null);
+				if (selected == null) {
+					selected = accounts.stream()
+						.filter(account -> session.getUsername().equalsIgnoreCase(account.username))
+						.findFirst()
+						.orElse(accounts.isEmpty() ? null : accounts.stream().filter(a -> a.launcher).findFirst().orElse(null));
+				}
 			}
-		} catch (Throwable t) {
-			BlazeMorphx.LOGGER.warn("Could not seed the current Minecraft session", t);
+		}
+		if (selected != null) {
+			ConfigManager.get().lastAccountId = selected.id;
+			ConfigManager.save();
 		}
 	}
 
@@ -71,9 +90,16 @@ public final class AccountManager {
 				copy.authJson = CryptoUtil.encrypt(account.authJson, ConfigManager.directory());
 				stored.add(copy);
 			}
-			Files.writeString(file(), ConfigManager.gson().toJson(stored), StandardCharsets.UTF_8);
+			Path target = file();
+			Path temp = target.resolveSibling("accounts.json.tmp");
+			Files.writeString(temp, ConfigManager.gson().toJson(stored), StandardCharsets.UTF_8);
+			try {
+				Files.move(temp, target, java.nio.file.StandardCopyOption.REPLACE_EXISTING, java.nio.file.StandardCopyOption.ATOMIC_MOVE);
+			} catch (Exception moveError) {
+				Files.move(temp, target, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+			}
 		} catch (Exception e) {
-			BlazeMorphx.LOGGER.warn("Failed to save accounts");
+			BlazeMorphx.LOGGER.warn("Failed to save accounts", e);
 		}
 	}
 
@@ -86,36 +112,66 @@ public final class AccountManager {
 	}
 
 	public synchronized void add(Account account) {
-		accounts.removeIf(existing -> existing.username.equalsIgnoreCase(account.username) && existing.type == account.type);
+		accounts.removeIf(existing -> !existing.launcher
+			&& existing.username.equalsIgnoreCase(account.username)
+			&& existing.type == account.type);
 		accounts.add(account);
-		select(account, true);
 		save();
 	}
 
 	public synchronized void remove(Account account) {
+		if (account.launcher) {
+			return;
+		}
 		accounts.removeIf(existing -> existing.id.equals(account.id));
 		if (selected != null && selected.id.equals(account.id)) {
-			selected = accounts.isEmpty() ? null : accounts.getFirst();
-			if (selected != null) {
-				select(selected, true);
-			}
+			selected = accounts.stream().filter(a -> a.launcher).findFirst().orElse(accounts.isEmpty() ? null : accounts.getFirst());
 		}
 		save();
 	}
 
-	public synchronized void select(Account account, boolean notify) {
-		if (account == null) {
+	public void selectAsync(Account account, Consumer<SessionSwitcher.Result> callback) {
+		if (account == null || switching) {
 			return;
 		}
-		selected = account;
-		account.lastUsed = System.currentTimeMillis();
-		ConfigManager.get().lastAccountId = account.id;
-		ConfigManager.save();
-		applySession(account);
-		save();
-		if (notify) {
-			NotificationRenderer.get().push("Account selected", account.username + " · " + account.badge());
+		MinecraftClient client = MinecraftClient.getInstance();
+		if (client == null) {
+			callback.accept(SessionSwitcher.Result.fail("Minecraft is not ready."));
+			return;
 		}
+		switching = true;
+		CompletableFuture.supplyAsync(() -> prepare(account)).whenComplete((prepared, error) -> client.execute(() -> {
+			try {
+				if (error != null) {
+					callback.accept(SessionSwitcher.Result.fail(root(error)));
+					return;
+				}
+				SessionSwitcher.Result result = account.launcher
+					? switcher.restoreLauncher(client)
+					: switcher.apply(client, prepared);
+				if (result.success()) {
+					selected = prepared;
+					prepared.lastUsed = System.currentTimeMillis();
+					ConfigManager.get().lastAccountId = prepared.id;
+					ConfigManager.save();
+					save();
+				}
+				callback.accept(result);
+			} finally {
+				switching = false;
+			}
+		}));
+	}
+
+	private Account prepare(Account account) {
+		if (account.isPremium() && !account.launcher) {
+			try {
+				MicrosoftAuth.refreshAccessToken(account);
+			} catch (Exception e) {
+				throw new RuntimeException(root(e), e);
+			}
+		}
+		return account;
 	}
 
 	public Optional<Account> byId(String id) {
@@ -125,18 +181,31 @@ public final class AccountManager {
 		return accounts.stream().filter(account -> account.id.equals(id)).findFirst();
 	}
 
-	private void seedCurrentSession() {
-		MinecraftClient client = MinecraftClient.getInstance();
-		if (client == null) {
-			return;
+	public Optional<Account> byUsername(String username) {
+		if (username == null || username.isBlank()) {
+			return Optional.empty();
 		}
+		return accounts.stream().filter(account -> account.username.equalsIgnoreCase(username)).findFirst();
+	}
+
+	private void seedCurrentSession(MinecraftClient client) {
 		Session session = client.getSession();
 		if (session == null) {
 			return;
 		}
-		boolean exists = accounts.stream().anyMatch(account -> account.username.equalsIgnoreCase(session.getUsername()));
-		if (exists) {
-			return;
+		for (Account existing : accounts) {
+			if (existing.username.equalsIgnoreCase(session.getUsername())) {
+				existing.launcher = true;
+				existing.encryptedToken = session.getAccessToken();
+				existing.xuid = session.getXuid().orElse("");
+				existing.clientId = session.getClientId().orElse("");
+				UUID uuid = session.getUuidOrNull();
+				if (uuid != null) {
+					existing.uuid = uuid.toString();
+				}
+				existing.type = session.getAccessToken() != null && session.getAccessToken().length() > 8 ? Account.Type.PREMIUM : Account.Type.OFFLINE;
+				return;
+			}
 		}
 		Account account = new Account();
 		account.username = session.getUsername();
@@ -144,58 +213,11 @@ public final class AccountManager {
 		account.uuid = uuid == null ? UUID.randomUUID().toString() : uuid.toString();
 		account.type = session.getAccessToken() != null && session.getAccessToken().length() > 8 ? Account.Type.PREMIUM : Account.Type.OFFLINE;
 		account.encryptedToken = session.getAccessToken();
-		accounts.add(account);
+		account.xuid = session.getXuid().orElse("");
+		account.clientId = session.getClientId().orElse("");
+		account.launcher = true;
+		accounts.add(0, account);
 		save();
-	}
-
-	private void applySession(Account account) {
-		MinecraftClient client = MinecraftClient.getInstance();
-		if (client == null) {
-			return;
-		}
-		try {
-			String token = account.encryptedToken;
-			if (account.isPremium()) {
-				try {
-					String refreshed = MicrosoftAuth.refreshAccessToken(account);
-					if (refreshed != null && !refreshed.isBlank()) {
-						token = refreshed;
-					}
-				} catch (Throwable ignored) {
-				}
-			}
-			if (token == null || token.isBlank()) {
-				token = "0";
-			}
-			UUID uuid = UUID.fromString(account.uuid);
-			Session session = new Session(account.username, uuid, token, Optional.empty(), Optional.empty());
-			if (!writeSession(client, session)) {
-				NotificationRenderer.get().error("Could not apply account session");
-			}
-		} catch (Throwable e) {
-			NotificationRenderer.get().error("Could not apply account session");
-			BlazeMorphx.LOGGER.warn("Session apply failed for {}", account.username);
-		}
-	}
-
-	private static boolean writeSession(MinecraftClient client, Session session) {
-		try {
-			((MinecraftClientAccessor) client).blaze$setSession(session);
-			return true;
-		} catch (Throwable ignored) {
-		}
-		try {
-			var resolver = net.fabricmc.loader.api.FabricLoader.getInstance().getMappingResolver();
-			String owner = resolver.mapClassName("intermediary", "net.minecraft.class_310");
-			String name = resolver.mapFieldName("intermediary", "net.minecraft.class_310", "field_1726", "Lnet/minecraft/class_320;");
-			java.lang.reflect.Field field = Class.forName(owner).getDeclaredField(name);
-			field.setAccessible(true);
-			field.set(client, session);
-			return true;
-		} catch (Throwable t) {
-			BlazeMorphx.LOGGER.warn("Reflection session replace failed", t);
-			return false;
-		}
 	}
 
 	private static Account copyOf(Account account) {
@@ -207,8 +229,19 @@ public final class AccountManager {
 		copy.encryptedToken = account.encryptedToken;
 		copy.encryptedRefresh = account.encryptedRefresh;
 		copy.authJson = account.authJson;
+		copy.xuid = account.xuid;
+		copy.clientId = account.clientId;
+		copy.launcher = account.launcher;
 		copy.lastUsed = account.lastUsed;
 		return copy;
+	}
+
+	private static String root(Throwable error) {
+		Throwable current = error;
+		while (current.getCause() != null && current.getCause() != current) {
+			current = current.getCause();
+		}
+		return current.getMessage() == null ? current.getClass().getSimpleName() : current.getMessage();
 	}
 
 	private static Path file() {

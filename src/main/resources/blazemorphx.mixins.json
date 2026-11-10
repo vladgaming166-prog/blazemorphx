@@ -5,7 +5,6 @@
 	"client": [
 		"MinecraftClientMixin",
 		"MinecraftClientAccessor",
-		"SplashOverlayMixin",
 		"MouseMixin",
 		"ParticleManagerMixin",
 		"InGameHudMixin",

@@ -43,8 +43,8 @@ public final class CrosshairManager {
 				gap += 2f;
 			}
 		}
-		int color = config.crosshairColor;
-		int outline = 0xFF000000;
+		int color = ColorUtil.withAlpha(config.crosshairColor, ColorUtil.clamp255(config.crosshairOpacity));
+		int outline = ColorUtil.withAlpha(config.crosshairOutlineColor, ColorUtil.clamp255(config.crosshairOpacity));
 		float size = config.crosshairSize;
 		float thick = Math.max(1f, config.crosshairThickness);
 		float outlineT = config.crosshairOutline ? Math.max(1f, config.crosshairOutlineThickness) : 0f;
@@ -78,14 +78,16 @@ public final class CrosshairManager {
 		float size = config.crosshairSize;
 		float thick = Math.max(1f, config.crosshairThickness);
 		float gap = config.crosshairGap;
-		drawBar(context, cx - size - gap, cy - thick / 2f, size, thick, config.crosshairColor, 0xFF000000, config.crosshairOutline ? 1 : 0);
+		int color = ColorUtil.withAlpha(config.crosshairColor, ColorUtil.clamp255(config.crosshairOpacity));
+		int outline = ColorUtil.withAlpha(config.crosshairOutlineColor, ColorUtil.clamp255(config.crosshairOpacity));
+		drawBar(context, cx - size - gap, cy - thick / 2f, size, thick, color, outline, config.crosshairOutline ? 1 : 0);
 		if (!config.crosshairTShape) {
-			drawBar(context, cx + gap, cy - thick / 2f, size, thick, config.crosshairColor, 0xFF000000, config.crosshairOutline ? 1 : 0);
+			drawBar(context, cx + gap, cy - thick / 2f, size, thick, color, outline, config.crosshairOutline ? 1 : 0);
 		}
-		drawBar(context, cx - thick / 2f, cy - size - gap, thick, size, config.crosshairColor, 0xFF000000, config.crosshairOutline ? 1 : 0);
-		drawBar(context, cx - thick / 2f, cy + gap, thick, size, config.crosshairColor, 0xFF000000, config.crosshairOutline ? 1 : 0);
+		drawBar(context, cx - thick / 2f, cy - size - gap, thick, size, color, outline, config.crosshairOutline ? 1 : 0);
+		drawBar(context, cx - thick / 2f, cy + gap, thick, size, color, outline, config.crosshairOutline ? 1 : 0);
 		if (config.crosshairDot) {
-			drawBar(context, cx - 1, cy - 1, 2, 2, config.crosshairColor, 0xFF000000, 1);
+			drawBar(context, cx - 1, cy - 1, 2, 2, color, outline, 1);
 		}
 	}
 

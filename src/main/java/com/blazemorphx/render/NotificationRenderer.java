@@ -1,7 +1,5 @@
 package com.blazemorphx.render;
 
-import com.blazemorphx.customization.FontManager;
-import com.blazemorphx.customization.ThemeManager;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 
@@ -20,14 +18,14 @@ public final class NotificationRenderer {
 	}
 
 	public void push(String title, String body) {
-		toasts.addLast(new Toast(title, body, ThemeManager.accent(), 160));
+		toasts.addLast(new Toast(title, body, 0xFFFFFF, 160));
 		while (toasts.size() > 5) {
 			toasts.removeFirst();
 		}
 	}
 
 	public void error(String body) {
-		toasts.addLast(new Toast("Blaze Morphx", body, ThemeManager.danger(), 200));
+		toasts.addLast(new Toast("Blaze Morphx", body, 0xFFFF5555, 220));
 	}
 
 	public void tick() {
@@ -36,15 +34,17 @@ public final class NotificationRenderer {
 
 	public void render(DrawContext context) {
 		MinecraftClient client = MinecraftClient.getInstance();
-		int y = 12;
+		if (client == null || client.textRenderer == null) {
+			return;
+		}
+		int y = 8;
 		for (Toast toast : toasts) {
-			float fade = Math.min(1f, toast.life / 12f);
-			int w = 220;
-			int x = client.getWindow().getScaledWidth() - w - 12;
-			GlassRenderer.panel(context, x, y, w, 36, ThemeManager.panelStrong(), toast.color, fade);
-			FontManager.get().draw(context, toast.title, x + 10, y + 6, toast.color);
-			FontManager.get().draw(context, toast.body, x + 10, y + 18, ThemeManager.muted());
-			y += 42;
+			int w = Math.min(280, Math.max(160, client.textRenderer.getWidth(toast.body) + 16));
+			int x = client.getWindow().getScaledWidth() - w - 8;
+			context.fill(x, y, x + w, y + 28, 0xC0101010);
+			context.drawTextWithShadow(client.textRenderer, toast.title, x + 6, y + 4, toast.color);
+			context.drawTextWithShadow(client.textRenderer, toast.body, x + 6, y + 14, 0xFFA0A0A0);
+			y += 32;
 		}
 	}
 

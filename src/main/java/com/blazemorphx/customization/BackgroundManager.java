@@ -57,18 +57,24 @@ public final class BackgroundManager {
 	}
 
 	public void tickPlayback(MinecraftClient client) {
-		if (!started) {
-			return;
-		}
-		if (!ConfigManager.get().animatedBackground || !ConfigManager.get().pauseVideoWhenHidden) {
-			video.resume();
+		if (client.world != null) {
+			if (started) {
+				video.stop();
+				started = false;
+			}
 			return;
 		}
 		Screen screen = client.currentScreen;
-		if (screen instanceof BlazeScreen || isTitleLike(screen)) {
-			video.resume();
+		if (!(screen instanceof com.blazemorphx.gui.MainMenuScreen)) {
+			if (started) {
+				video.pause();
+			}
+			return;
+		}
+		if (!started) {
+			restart();
 		} else {
-			video.pause();
+			video.resume();
 		}
 	}
 

@@ -4,7 +4,6 @@ import com.blazemorphx.config.ConfigManager;
 import com.blazemorphx.config.ModConfig;
 import com.blazemorphx.input.ClickTracker;
 import com.blazemorphx.optimization.FPSMonitor;
-import com.blazemorphx.render.GlassRenderer;
 import com.blazemorphx.util.ColorUtil;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
@@ -135,8 +134,9 @@ public final class HUDManager {
 		context.getMatrices().pushMatrix();
 		context.getMatrices().translate(x, y);
 		context.getMatrices().scale(widget.scale, widget.scale);
-		GlassRenderer.rounded(context, -3, -3, FontManager.get().width(text) + 8, 14, 3, ColorUtil.withAlpha(0xFF050505, 120));
-		FontManager.get().draw(context, text, 0, 0, color);
+		var renderer = MinecraftClient.getInstance().textRenderer;
+		context.fill(-3, -3, renderer.getWidth(text) + 5, 11, ColorUtil.withAlpha(0xFF000000, 120));
+		context.drawTextWithShadow(renderer, text, 0, 0, color);
 		context.getMatrices().popMatrix();
 	}
 
@@ -166,8 +166,9 @@ public final class HUDManager {
 
 	private void key(DrawContext context, int x, int y, String label, boolean pressed, ModConfig.HudWidgetConfig widget, int w) {
 		int fill = pressed ? ColorUtil.withAlpha(widget.color, 160) : ColorUtil.withAlpha(0xFF101010, 160);
-		GlassRenderer.rounded(context, x, y, w, 18, 3, fill);
-		FontManager.get().drawCentered(context, label, x + w / 2, y + 5, 0xFFFFFFFF);
+		context.fill(x, y, x + w, y + 18, fill);
+		var renderer = MinecraftClient.getInstance().textRenderer;
+		context.drawCenteredTextWithShadow(renderer, label, x + w / 2, y + 5, 0xFFFFFFFF);
 	}
 
 	private void drawArmor(DrawContext context, int sw, int sh, MinecraftClient client) {
@@ -191,7 +192,7 @@ public final class HUDManager {
 			if (stack.isDamageable()) {
 				int max = stack.getMaxDamage();
 				int remain = max - stack.getDamage();
-				FontManager.get().draw(context, remain + "/" + max, x + 18, y + i * 18 + 4, widget.color);
+				context.drawTextWithShadow(MinecraftClient.getInstance().textRenderer, remain + "/" + max, x + 18, y + i * 18 + 4, widget.color);
 			}
 		}
 	}
@@ -212,7 +213,7 @@ public final class HUDManager {
 		for (StatusEffectInstance effect : effects) {
 			String name = Registries.STATUS_EFFECT.getId(effect.getEffectType().value()).getPath();
 			int seconds = effect.getDuration() / 20;
-			FontManager.get().draw(context, name + " " + seconds + "s", x, y + i * 12, widget.color);
+			context.drawTextWithShadow(MinecraftClient.getInstance().textRenderer, name + " " + seconds + "s", x, y + i * 12, widget.color);
 			i++;
 		}
 	}

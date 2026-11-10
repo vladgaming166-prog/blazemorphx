@@ -1,66 +1,39 @@
 # Blaze Morphx
 
-Premium client-side Fabric mod for **Minecraft Java 1.21.11**.
+Lightweight client-side Fabric mod for **Minecraft Java 1.21.11**.
 
-Blaze Morphx replaces the vanilla title screen with a glass PvP-client UI, plays an animated menu background, and adds a full account manager, customization center and FPS optimization dashboard.
+Vanilla Minecraft buttons, a customizable crosshair, real video-settings presets, a looping menu background, and a working multi-account manager.
+
+## Download
+
+1. Open the [Actions tab](https://github.com/vladgaming166-prog/blazemorphx/actions).
+2. Open the latest green **Build** run.
+3. Download **blazemorphx-1.1.0**.
+4. Put `blazemorphx-1.1.0.jar` in `.minecraft/mods`.
+5. Delete older `blazemorphx-1.0.x` jars.
+
+You need Minecraft **1.21.11**, Fabric Loader **0.19.x or 0.20.x**, Fabric API `0.141.6+1.21.11`, and Java 21.
+
+## Session switching
+
+Blaze Morphx no longer overwrites the launcher session on startup. That was the invalid-session bug.
+
+Switching a Microsoft account in the menu:
+
+- Refreshes the access token off the render thread
+- Replaces `Session`, `UserApiService`, `ProfileKeys`, `SocialInteractionsManager` and `AbuseReportContext`
+- Restores the previous session if Minecraft rejects the new token
+
+You do **not** need to restart Minecraft to switch between saved Microsoft accounts in the menu. If you are already on a multiplayer server, disconnect and rejoin so the server sees the new identity. Realms checkers created at launch may still need a restart.
+
+Offline profiles never join online-mode servers. That is Minecraft's authentication, not a Blaze Morphx limitation.
 
 ## Features
 
-- Custom glass main menu with Blaze Morphx branding
-- Looping muted menu background (bundled underwater frames + optional live MP4)
-- Microsoft device-code login and offline/cracked profiles
-- Font, background, crosshair and HUD editors
-- Optimization presets that write real vanilla video settings
-- Live FPS / memory monitors with before/after comparison
-- Keybinds: Right Shift (settings), Right Ctrl (HUD editor), F7 (stopwatch)
-
-## Download the JAR
-
-GitHub pull requests do **not** have a mod download button. The compiled client is produced by GitHub Actions.
-
-1. Open the [Actions tab](https://github.com/vladgaming166-prog/blazemorphx/actions).
-2. Click the latest green **Build** run.
-3. Scroll to **Artifacts**.
-4. Download `blazemorphx-1.0.2`.
-5. Unzip it if your browser saved a zip. Put `blazemorphx-1.0.2.jar` in `.minecraft/mods`.
-6. Delete any older `blazemorphx-1.0.0.jar` or `blazemorphx-1.0.1.jar`.
-
-You also need:
-
-- [Fabric Loader](https://fabricmc.net/use/installer/) **0.19.x or 0.20.x** for Minecraft **1.21.11**
-- [Fabric API](https://modrinth.com/mod/fabric-api) `0.141.6+1.21.11`
-- Java 21
-
-## Build it yourself
-
-```bash
-./gradlew build
-```
-
-The remapped JAR is written to `build/libs/blazemorphx-1.0.2.jar`.
-
-## Video playback
-
-Minecraft does not decode MP4 natively. Blaze Morphx does **not** bundle FFmpeg native libraries (those nested jars were crashing Fabric on launch). Instead it uses:
-
-1. Bundled underwater PNG frames, so the menu is animated even with no extra software
-2. A system `ffmpeg` CLI if you have it installed, for live MP4 playback
-3. A procedural bubble fallback
-
-The default video is extracted to `.minecraft/config/blazemorphx/cache/default_background.mp4` on first launch. Playback pauses when the menu is hidden and decoder resources are released on shutdown.
-
-## Accounts
-
-Premium login uses official Microsoft device-code OAuth. The mod never asks for a Microsoft password. Tokens are stored encrypted in `config/blazemorphx/accounts.json`.
-
-Account switching replaces the client `Session`. Fully reconnecting some Minecraft services (realms keys, some launcher-only state) still requires a game restart. Offline profiles only work on offline-mode servers.
-
-## Settings location
-
-`config/blazemorphx/`
-
-- `config.json` — UI, HUD, crosshair, optimization flags
-- `accounts.json` — encrypted account list
-- `backgrounds/` — imported videos and images
-- `fonts/` — imported TTF/OTF files
-- `profiles/` — configuration profiles
+- Vanilla-style main menu: Singleplayer, Multiplayer, Accounts, Customization, Optimization, Settings, Quit
+- Looping menu background (bundled underwater frames, optional live MP4 via system `ffmpeg`)
+- Video decoding stops when you leave the menu or enter a world
+- Microsoft device-code login (no password prompt) and offline profiles
+- Crosshair editor with live preview, presets, RGB, outline, T-shape, opacity
+- Optimization presets that write real vanilla options, with Restore Previous Settings
+- HUD modules that only render in gameplay

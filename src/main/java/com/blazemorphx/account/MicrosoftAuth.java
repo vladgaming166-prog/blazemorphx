@@ -19,11 +19,14 @@ public final class MicrosoftAuth {
 	public static CompletableFuture<Account> loginDeviceCode(Consumer<MsaDeviceCode> onCode) {
 		return CompletableFuture.supplyAsync(() -> {
 			try {
-				HttpClient httpClient = MinecraftAuth.createHttpClient("BlazeMorphx/1.0");
+				HttpClient httpClient = MinecraftAuth.createHttpClient("BlazeMorphx/1.1");
 				JavaAuthManager authManager = JavaAuthManager.create(httpClient)
 					.login(DeviceCodeMsaAuthService::new, onCode);
 				var profile = authManager.getMinecraftProfile().getUpToDate();
 				var token = authManager.getMinecraftToken().getUpToDate();
+				if (profile == null || profile.getName() == null || token == null || token.getToken() == null) {
+					throw new IllegalStateException("Microsoft login succeeded but Minecraft Java profile data was missing. This Microsoft account may not own Java Edition.");
+				}
 				Account account = new Account();
 				account.username = profile.getName();
 				account.uuid = profile.getId() == null ? UUID.randomUUID().toString() : profile.getId().toString();
@@ -34,36 +37,47 @@ public final class MicrosoftAuth {
 				account.encryptedToken = token.getToken();
 				return account;
 			} catch (Exception e) {
-				BlazeMorphx.LOGGER.warn("Microsoft authentication failed");
+				BlazeMorphx.LOGGER.warn("Microsoft authentication failed: {}", e.toString());
 				throw new RuntimeException(userSafe(e), e);
 			}
 		});
 	}
 
-	public static String refreshAccessToken(Account account) {
+	public static String refreshAccessToken(Account account) throws Exception {
 		if (account.authJson == null || account.authJson.isBlank()) {
-			return account.encryptedToken;
+			if (account.encryptedToken != null && account.encryptedToken.length() > 10) {
+				return account.encryptedToken;
+			}
+			throw new IllegalStateException("This Microsoft account has no refresh data. Sign in again with device login.");
 		}
-		try {
-			HttpClient httpClient = MinecraftAuth.createHttpClient("BlazeMorphx/1.0");
-			JsonObject json = com.google.gson.JsonParser.parseString(account.authJson).getAsJsonObject();
-			JavaAuthManager authManager = JavaAuthManager.fromJson(httpClient, json);
-			var token = authManager.getMinecraftToken().getUpToDate();
-			account.authJson = JavaAuthManager.toJson(authManager).toString();
-			account.encryptedToken = token.getToken();
-			var profile = authManager.getMinecraftProfile().getUpToDate();
+		HttpClient httpClient = MinecraftAuth.createHttpClient("BlazeMorphx/1.1");
+		JsonObject json = com.google.gson.JsonParser.parseString(account.authJson).getAsJsonObject();
+		JavaAuthManager authManager = JavaAuthManager.fromJson(httpClient, json);
+		var token = authManager.getMinecraftToken().getUpToDate();
+		if (token == null || token.getToken() == null || token.getToken().isBlank()) {
+			throw new IllegalStateException("Minecraft services did not return a fresh access token.");
+		}
+		account.authJson = JavaAuthManager.toJson(authManager).toString();
+		account.encryptedToken = token.getToken();
+		var profile = authManager.getMinecraftProfile().getUpToDate();
+		if (profile != null && profile.getName() != null) {
 			account.username = profile.getName();
-			return token.getToken();
-		} catch (Exception e) {
-			BlazeMorphx.LOGGER.warn("Token refresh failed for {}", account.username);
-			return account.encryptedToken;
+			if (profile.getId() != null) {
+				account.uuid = profile.getId().toString();
+			}
 		}
+		return token.getToken();
 	}
 
 	private static String userSafe(Exception e) {
-		String message = e.getMessage() == null ? "Authentication failed" : e.getMessage();
-		if (message.toLowerCase().contains("token")) {
-			return "Microsoft authentication failed. The Microsoft account may not own Minecraft Java.";
+		Throwable current = e;
+		while (current.getCause() != null && current.getCause() != current) {
+			current = current.getCause();
+		}
+		String message = current.getMessage() == null ? "Microsoft authentication failed" : current.getMessage();
+		String lower = message.toLowerCase();
+		if (lower.contains("token") || lower.contains("xbox") || lower.contains("xsts") || lower.contains("forbidden")) {
+			return "Microsoft authentication failed. The Microsoft account may not own Minecraft Java Edition.";
 		}
 		return message;
 	}

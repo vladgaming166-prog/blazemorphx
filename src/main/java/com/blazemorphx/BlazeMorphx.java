@@ -4,7 +4,6 @@ import com.blazemorphx.account.AccountManager;
 import com.blazemorphx.config.ConfigManager;
 import com.blazemorphx.customization.BackgroundManager;
 import com.blazemorphx.customization.CrosshairManager;
-import com.blazemorphx.customization.FontManager;
 import com.blazemorphx.customization.HUDManager;
 import com.blazemorphx.customization.ThemeManager;
 import com.blazemorphx.gui.MainMenuScreen;
@@ -32,7 +31,7 @@ import org.slf4j.LoggerFactory;
 public final class BlazeMorphx implements ClientModInitializer {
 	public static final String MOD_ID = "blazemorphx";
 	public static final String NAME = "Blaze Morphx";
-	public static final String VERSION = "1.0.2";
+	public static final String VERSION = "1.1.0";
 	public static final Logger LOGGER = LoggerFactory.getLogger(NAME);
 
 	private static BlazeMorphx instance;
@@ -44,7 +43,6 @@ public final class BlazeMorphx implements ClientModInitializer {
 
 		safe("config", ConfigManager::load);
 		safe("themes", ThemeManager::init);
-		safe("fonts", FontManager::init);
 		safe("accounts", () -> AccountManager.get().load());
 		safe("backgrounds", () -> BackgroundManager.get().init());
 		safe("optimization", () -> OptimizationManager.get().init());

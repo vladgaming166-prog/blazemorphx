@@ -54,6 +54,8 @@ public final class ModConfig {
 	public boolean crosshairDynamic = true;
 	public boolean crosshairDot = true;
 	public boolean crosshairTShape = false;
+	public int crosshairOpacity = 255;
+	public int crosshairOutlineColor = 0xFF000000;
 	public String crosshairPreset = "blaze";
 
 	public boolean hudFps = true;
