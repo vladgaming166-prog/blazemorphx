@@ -14,13 +14,19 @@ Blaze Morphx replaces the vanilla title screen with a glass PvP-client UI, plays
 - Live FPS / memory monitors with before/after comparison
 - Keybinds: Right Shift (settings), Right Ctrl (HUD editor), F7 (stopwatch)
 
-## Install
+## Download the JAR
 
-1. Install [Fabric Loader](https://fabricmc.net/use/installer/) for Minecraft 1.21.11
-2. Install [Fabric API](https://modrinth.com/mod/fabric-api) `0.141.6+1.21.11` or newer for 1.21.11
-3. Drop `blazemorphx-1.0.0.jar` from `build/libs` into `.minecraft/mods`
+GitHub pull requests do **not** have a mod download button. The compiled client is produced by GitHub Actions.
 
-## Build
+1. Open the [Actions tab](https://github.com/vladgaming166-prog/blazemorphx/actions).
+2. Click the latest green **Build** run.
+3. Scroll to **Artifacts**.
+4. Download `blazemorphx-1.0.0`.
+5. Unzip it if your browser saved a zip. Put `blazemorphx-1.0.0.jar` in `.minecraft/mods`.
+
+You also need [Fabric Loader](https://fabricmc.net/use/installer/) for 1.21.11 and [Fabric API](https://modrinth.com/mod/fabric-api) `0.141.6+1.21.11`.
+
+## Build it yourself
 
 ```bash
 ./gradlew build
