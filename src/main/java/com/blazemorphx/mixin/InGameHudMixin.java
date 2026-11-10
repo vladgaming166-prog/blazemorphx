@@ -11,7 +11,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(InGameHud.class)
 public class InGameHudMixin {
-	@Inject(method = "renderVignetteOverlay", at = @At("HEAD"), cancellable = true)
+	@Inject(method = "renderVignetteOverlay", at = @At("HEAD"), cancellable = true, require = 0)
 	private void blaze$skipVignette(DrawContext context, Entity entity, CallbackInfo ci) {
 		if (OptimizationManager.get().skipVignette()) {
 			ci.cancel();

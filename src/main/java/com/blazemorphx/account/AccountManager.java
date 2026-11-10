@@ -49,11 +49,15 @@ public final class AccountManager {
 		} catch (Exception e) {
 			BlazeMorphx.LOGGER.warn("Failed to load accounts");
 		}
-		seedCurrentSession();
-		String last = ConfigManager.get().lastAccountId;
-		selected = byId(last).orElse(accounts.isEmpty() ? null : accounts.getFirst());
-		if (selected != null) {
-			select(selected, false);
+		try {
+			seedCurrentSession();
+			String last = ConfigManager.get().lastAccountId;
+			selected = byId(last).orElse(accounts.isEmpty() ? null : accounts.getFirst());
+			if (selected != null) {
+				select(selected, false);
+			}
+		} catch (Throwable t) {
+			BlazeMorphx.LOGGER.warn("Could not seed the current Minecraft session", t);
 		}
 	}
 

@@ -10,7 +10,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(ParticleManager.class)
 public class ParticleManagerMixin {
-	@Inject(method = "addParticle(Lnet/minecraft/client/particle/Particle;)V", at = @At("HEAD"), cancellable = true)
+	@Inject(method = "addParticle(Lnet/minecraft/client/particle/Particle;)V", at = @At("HEAD"), cancellable = true, require = 0)
 	private void blaze$limitParticles(Particle particle, CallbackInfo ci) {
 		if (OptimizationManager.get().shouldSkipParticle()) {
 			ci.cancel();

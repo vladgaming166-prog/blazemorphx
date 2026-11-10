@@ -21,6 +21,7 @@ public final class BackgroundManager {
 	private final VideoBackgroundRenderer video = new VideoBackgroundRenderer();
 	private final CustomBackground fallback = new CustomBackground();
 	private boolean prepared;
+	private boolean started;
 
 	private BackgroundManager() {
 	}
@@ -32,13 +33,13 @@ public final class BackgroundManager {
 	public void init() {
 		ensureDefaultExtracted();
 		prepared = true;
-		restart();
 	}
 
 	public void restart() {
 		if (!prepared) {
 			return;
 		}
+		started = true;
 		ModConfig config = ConfigManager.get();
 		if (!config.animatedBackground) {
 			video.stop();
@@ -56,6 +57,9 @@ public final class BackgroundManager {
 	}
 
 	public void tickPlayback(MinecraftClient client) {
+		if (!started) {
+			return;
+		}
 		if (!ConfigManager.get().animatedBackground || !ConfigManager.get().pauseVideoWhenHidden) {
 			video.resume();
 			return;
@@ -69,11 +73,23 @@ public final class BackgroundManager {
 	}
 
 	public void render(DrawContext context, int width, int height, float delta) {
+		if (prepared && !started) {
+			try {
+				restart();
+			} catch (Throwable t) {
+				BlazeMorphx.LOGGER.warn("Video background start failed, using fallback", t);
+				started = true;
+			}
+		}
 		ModConfig config = ConfigManager.get();
-		if (config.animatedBackground && !video.isFailed()) {
-			video.uploadAndDraw(context, width, height);
-		} else {
-			fallback.render(context, width, height, delta);
+		try {
+			if (config.animatedBackground && !video.isFailed()) {
+				video.uploadAndDraw(context, width, height);
+			} else {
+				fallback.render(context, width, height, delta);
+			}
+		} catch (Throwable t) {
+			CustomBackground.renderFallback(context, width, height, delta);
 		}
 		int overlay = ColorUtil.withAlpha(0xFF050508, ColorUtil.clamp255((int) (config.overlayOpacity * 255)));
 		context.fill(0, 0, width, height, overlay);
@@ -147,6 +163,7 @@ public final class BackgroundManager {
 		}
 		try (InputStream in = BlazeMorphx.class.getResourceAsStream("/assets/blazemorphx/video/default_background.mp4")) {
 			if (in != null) {
+				Files.createDirectories(dest.getParent());
 				Files.copy(in, dest, StandardCopyOption.REPLACE_EXISTING);
 			}
 		} catch (Exception e) {

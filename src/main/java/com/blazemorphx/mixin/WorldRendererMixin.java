@@ -11,7 +11,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(WorldRenderer.class)
 public class WorldRendererMixin {
-	@Inject(method = "renderWeather", at = @At("HEAD"), cancellable = true)
+	@Inject(method = "renderWeather", at = @At("HEAD"), cancellable = true, require = 0)
 	private void blaze$skipWeather(FrameGraphBuilder frameGraphBuilder, GpuBufferSlice gpuBufferSlice, CallbackInfo ci) {
 		if (OptimizationManager.get().skipWeather()) {
 			ci.cancel();

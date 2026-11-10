@@ -12,7 +12,7 @@ import net.minecraft.client.util.InputUtil;
 import org.lwjgl.glfw.GLFW;
 
 public final class KeyBindings {
-	public static final KeyBinding.Category CATEGORY = KeyBinding.Category.create(Identifiers.of("main"));
+	public static KeyBinding.Category CATEGORY;
 	public static KeyBinding menu;
 	public static KeyBinding hudEditor;
 	public static KeyBinding stopwatch;
@@ -21,6 +21,9 @@ public final class KeyBindings {
 	}
 
 	public static void register() {
+		if (CATEGORY == null) {
+			CATEGORY = KeyBinding.Category.create(Identifiers.of("main"));
+		}
 		menu = KeyBindingHelper.registerKeyBinding(new KeyBinding(
 			"key.blazemorphx.menu",
 			InputUtil.Type.KEYSYM,
@@ -42,6 +45,9 @@ public final class KeyBindings {
 	}
 
 	public static void tick(MinecraftClient client) {
+		if (menu == null || hudEditor == null || stopwatch == null) {
+			return;
+		}
 		while (menu.wasPressed()) {
 			if (client.currentScreen == null) {
 				client.setScreen(new SettingsScreen(null));

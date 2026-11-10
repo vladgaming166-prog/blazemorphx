@@ -4,12 +4,7 @@
 	"compatibilityLevel": "JAVA_21",
 	"client": [
 		"MinecraftClientMixin",
-		"MinecraftClientAccessor",
-		"SplashOverlayMixin",
-		"MouseMixin",
-		"ParticleManagerMixin",
-		"InGameHudMixin",
-		"WorldRendererMixin"
+		"MinecraftClientAccessor"
 	],
 	"injectors": {
 		"defaultRequire": 1

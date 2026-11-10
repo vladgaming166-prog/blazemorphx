@@ -1,0 +1,18 @@
+{
+	"required": false,
+	"package": "com.blazemorphx.mixin",
+	"compatibilityLevel": "JAVA_21",
+	"client": [
+		"SplashOverlayMixin",
+		"MouseMixin",
+		"ParticleManagerMixin",
+		"InGameHudMixin",
+		"WorldRendererMixin"
+	],
+	"injectors": {
+		"defaultRequire": 0
+	},
+	"overwrites": {
+		"requireAnnotations": true
+	}
+}

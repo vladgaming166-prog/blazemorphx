@@ -21,10 +21,10 @@ GitHub pull requests do **not** have a mod download button. The compiled client 
 1. Open the [Actions tab](https://github.com/vladgaming166-prog/blazemorphx/actions).
 2. Click the latest green **Build** run.
 3. Scroll to **Artifacts**.
-4. Download `blazemorphx-1.0.0`.
-5. Unzip it if your browser saved a zip. Put `blazemorphx-1.0.0.jar` in `.minecraft/mods`.
+4. Download `blazemorphx-1.0.1`.
+5. Unzip it if your browser saved a zip. Put `blazemorphx-1.0.1.jar` in `.minecraft/mods`.
 
-You also need [Fabric Loader](https://fabricmc.net/use/installer/) for 1.21.11 and [Fabric API](https://modrinth.com/mod/fabric-api) `0.141.6+1.21.11`.
+You also need [Fabric Loader](https://fabricmc.net/use/installer/) **0.19.x or 0.20.x** for Minecraft **1.21.11**, plus [Fabric API](https://modrinth.com/mod/fabric-api) `0.141.6+1.21.11`.
 
 ## Build it yourself
 
@@ -32,7 +32,7 @@ You also need [Fabric Loader](https://fabricmc.net/use/installer/) for 1.21.11 a
 ./gradlew build
 ```
 
-The remapped JAR is written to `build/libs/blazemorphx-1.0.0.jar`.
+The remapped JAR is written to `build/libs/blazemorphx-1.0.1.jar`.
 
 ## Video playback
 
@@ -42,7 +42,7 @@ Minecraft does not decode MP4 natively. Blaze Morphx uses:
 2. A system `ffmpeg` CLI fallback
 3. A procedural bubble fallback if decoding fails
 
-The default video is extracted to `.minecraft/config/blazemorphx/cache/default_background.mp4` on first launch. Playback pauses when the menu is hidden and decoder resources are released on shutdown.
+Video decoding starts only after the menu opens, so a missing FFmpeg native library cannot crash the game during launch. The default video is extracted to `.minecraft/config/blazemorphx/cache/default_background.mp4` on first launch. Playback pauses when the menu is hidden and decoder resources are released on shutdown.
 
 ## Accounts
 

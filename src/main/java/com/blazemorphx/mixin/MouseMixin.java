@@ -11,7 +11,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(Mouse.class)
 public class MouseMixin {
-	@Inject(method = "onMouseButton", at = @At("HEAD"))
+	@Inject(method = "onMouseButton", at = @At("HEAD"), require = 0)
 	private void blaze$trackClicks(long window, MouseInput input, int action, CallbackInfo ci) {
 		ClickTracker.mouseButton(input.button(), action == GLFW.GLFW_PRESS);
 	}
