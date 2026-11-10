@@ -1,0 +1,32 @@
+{
+	"schemaVersion": 1,
+	"id": "blazemorphx",
+	"version": "${version}",
+	"name": "Blaze Morphx",
+	"description": "Premium client-side PvP experience for Minecraft Java 1.21.11. Custom glass UI, animated main menu, account manager, HUD/crosshair customization and FPS optimization.",
+	"authors": [
+		"Blaze Morphx"
+	],
+	"contact": {
+		"homepage": "https://github.com/vladgaming166-prog/blazemorphx",
+		"sources": "https://github.com/vladgaming166-prog/blazemorphx"
+	},
+	"license": "MIT",
+	"icon": "assets/blazemorphx/icon.png",
+	"environment": "client",
+	"entrypoints": {
+		"client": [
+			"com.blazemorphx.BlazeMorphx"
+		]
+	},
+	"mixins": [
+		"blazemorphx.mixins.json"
+	],
+	"accessWidener": "blazemorphx.accesswidener",
+	"depends": {
+		"fabricloader": ">=0.19.0",
+		"minecraft": "~1.21.11",
+		"java": ">=21",
+		"fabric-api": "*"
+	}
+}
