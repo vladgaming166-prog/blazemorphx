@@ -1,13 +1,18 @@
 {
-	"required": true,
+	"required": false,
 	"package": "com.blazemorphx.mixin",
 	"compatibilityLevel": "JAVA_21",
 	"client": [
 		"MinecraftClientMixin",
-		"MinecraftClientAccessor"
+		"MinecraftClientAccessor",
+		"SplashOverlayMixin",
+		"MouseMixin",
+		"ParticleManagerMixin",
+		"InGameHudMixin",
+		"WorldRendererMixin"
 	],
 	"injectors": {
-		"defaultRequire": 1
+		"defaultRequire": 0
 	},
 	"overwrites": {
 		"requireAnnotations": true

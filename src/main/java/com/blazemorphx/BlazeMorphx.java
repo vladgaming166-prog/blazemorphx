@@ -23,6 +23,7 @@ import net.fabricmc.fabric.api.client.rendering.v1.hud.VanillaHudElements;
 import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.loader.api.ModContainer;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.screen.TitleScreen;
 import net.minecraft.util.Identifier;
 import org.slf4j.Logger;
@@ -31,7 +32,7 @@ import org.slf4j.LoggerFactory;
 public final class BlazeMorphx implements ClientModInitializer {
 	public static final String MOD_ID = "blazemorphx";
 	public static final String NAME = "Blaze Morphx";
-	public static final String VERSION = "1.0.1";
+	public static final String VERSION = "1.0.2";
 	public static final Logger LOGGER = LoggerFactory.getLogger(NAME);
 
 	private static BlazeMorphx instance;
@@ -54,8 +55,14 @@ public final class BlazeMorphx implements ClientModInitializer {
 		safe("memory", () -> MemoryMonitor.get().init());
 		safe("hud", BlazeMorphx::registerHud);
 		safe("welcome", () -> NotificationRenderer.get().push("Welcome to Blaze Morphx", "Glass UI · Accounts · Optimization"));
+		safe("ticks", BlazeMorphx::registerTicks);
+		safe("shutdown-hook", BlazeMorphx::registerShutdown);
+	}
 
+	private static void registerTicks() {
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
+			safe("tick-title", () -> maybeReplaceTitle(client));
+			safe("tick-particles", () -> OptimizationManager.get().resetParticleCounter());
 			safe("tick-keys", () -> KeyBindings.tick(client));
 			safe("tick-clicks", ClickTracker::tick);
 			safe("tick-fps", () -> FPSMonitor.get().tick(client));
@@ -64,7 +71,9 @@ public final class BlazeMorphx implements ClientModInitializer {
 			safe("tick-notify", () -> NotificationRenderer.get().tick());
 			safe("tick-video", () -> BackgroundManager.get().tickPlayback(client));
 		});
+	}
 
+	private static void registerShutdown() {
 		ClientLifecycleEvents.CLIENT_STOPPING.register(client -> {
 			safe("shutdown-video", () -> BackgroundManager.get().shutdown());
 			safe("shutdown-config", ConfigManager::save);
@@ -99,7 +108,7 @@ public final class BlazeMorphx implements ClientModInitializer {
 		return instance;
 	}
 
-	public static boolean shouldReplaceTitle(net.minecraft.client.gui.screen.Screen screen) {
+	public static boolean shouldReplaceTitle(Screen screen) {
 		try {
 			return screen != null
 				&& screen.getClass() == TitleScreen.class
@@ -107,6 +116,16 @@ public final class BlazeMorphx implements ClientModInitializer {
 				&& !(screen instanceof MainMenuScreen);
 		} catch (Throwable t) {
 			return false;
+		}
+	}
+
+	public static Screen replaceTitleIfNeeded(Screen screen) {
+		return shouldReplaceTitle(screen) ? new MainMenuScreen() : screen;
+	}
+
+	public static void maybeReplaceTitle(MinecraftClient client) {
+		if (client != null && shouldReplaceTitle(client.currentScreen)) {
+			client.setScreen(new MainMenuScreen());
 		}
 	}
 

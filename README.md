@@ -2,12 +2,12 @@
 
 Premium client-side Fabric mod for **Minecraft Java 1.21.11**.
 
-Blaze Morphx replaces the vanilla title screen with a glass PvP-client UI, plays an animated MP4 menu background, and adds a full account manager, customization center and FPS optimization dashboard.
+Blaze Morphx replaces the vanilla title screen with a glass PvP-client UI, plays an animated menu background, and adds a full account manager, customization center and FPS optimization dashboard.
 
 ## Features
 
 - Custom glass main menu with Blaze Morphx branding
-- Looping muted MP4 background (default underwater video + import your own)
+- Looping muted menu background (bundled underwater frames + optional live MP4)
 - Microsoft device-code login and offline/cracked profiles
 - Font, background, crosshair and HUD editors
 - Optimization presets that write real vanilla video settings
@@ -21,10 +21,15 @@ GitHub pull requests do **not** have a mod download button. The compiled client 
 1. Open the [Actions tab](https://github.com/vladgaming166-prog/blazemorphx/actions).
 2. Click the latest green **Build** run.
 3. Scroll to **Artifacts**.
-4. Download `blazemorphx-1.0.1`.
-5. Unzip it if your browser saved a zip. Put `blazemorphx-1.0.1.jar` in `.minecraft/mods`.
+4. Download `blazemorphx-1.0.2`.
+5. Unzip it if your browser saved a zip. Put `blazemorphx-1.0.2.jar` in `.minecraft/mods`.
+6. Delete any older `blazemorphx-1.0.0.jar` or `blazemorphx-1.0.1.jar`.
 
-You also need [Fabric Loader](https://fabricmc.net/use/installer/) **0.19.x or 0.20.x** for Minecraft **1.21.11**, plus [Fabric API](https://modrinth.com/mod/fabric-api) `0.141.6+1.21.11`.
+You also need:
+
+- [Fabric Loader](https://fabricmc.net/use/installer/) **0.19.x or 0.20.x** for Minecraft **1.21.11**
+- [Fabric API](https://modrinth.com/mod/fabric-api) `0.141.6+1.21.11`
+- Java 21
 
 ## Build it yourself
 
@@ -32,17 +37,17 @@ You also need [Fabric Loader](https://fabricmc.net/use/installer/) **0.19.x or 0
 ./gradlew build
 ```
 
-The remapped JAR is written to `build/libs/blazemorphx-1.0.1.jar`.
+The remapped JAR is written to `build/libs/blazemorphx-1.0.2.jar`.
 
 ## Video playback
 
-Minecraft does not decode MP4 natively. Blaze Morphx uses:
+Minecraft does not decode MP4 natively. Blaze Morphx does **not** bundle FFmpeg native libraries (those nested jars were crashing Fabric on launch). Instead it uses:
 
-1. JavaCV / FFmpeg natives bundled in the JAR
-2. A system `ffmpeg` CLI fallback
-3. A procedural bubble fallback if decoding fails
+1. Bundled underwater PNG frames, so the menu is animated even with no extra software
+2. A system `ffmpeg` CLI if you have it installed, for live MP4 playback
+3. A procedural bubble fallback
 
-Video decoding starts only after the menu opens, so a missing FFmpeg native library cannot crash the game during launch. The default video is extracted to `.minecraft/config/blazemorphx/cache/default_background.mp4` on first launch. Playback pauses when the menu is hidden and decoder resources are released on shutdown.
+The default video is extracted to `.minecraft/config/blazemorphx/cache/default_background.mp4` on first launch. Playback pauses when the menu is hidden and decoder resources are released on shutdown.
 
 ## Accounts
 

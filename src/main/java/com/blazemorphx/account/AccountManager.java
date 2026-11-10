@@ -154,16 +154,47 @@ public final class AccountManager {
 			return;
 		}
 		try {
-			String token = account.isPremium() ? MicrosoftAuth.refreshAccessToken(account) : "0";
+			String token = account.encryptedToken;
+			if (account.isPremium()) {
+				try {
+					String refreshed = MicrosoftAuth.refreshAccessToken(account);
+					if (refreshed != null && !refreshed.isBlank()) {
+						token = refreshed;
+					}
+				} catch (Throwable ignored) {
+				}
+			}
 			if (token == null || token.isBlank()) {
 				token = "0";
 			}
 			UUID uuid = UUID.fromString(account.uuid);
 			Session session = new Session(account.username, uuid, token, Optional.empty(), Optional.empty());
-			((MinecraftClientAccessor) client).blaze$setSession(session);
-		} catch (Exception e) {
+			if (!writeSession(client, session)) {
+				NotificationRenderer.get().error("Could not apply account session");
+			}
+		} catch (Throwable e) {
 			NotificationRenderer.get().error("Could not apply account session");
 			BlazeMorphx.LOGGER.warn("Session apply failed for {}", account.username);
+		}
+	}
+
+	private static boolean writeSession(MinecraftClient client, Session session) {
+		try {
+			((MinecraftClientAccessor) client).blaze$setSession(session);
+			return true;
+		} catch (Throwable ignored) {
+		}
+		try {
+			var resolver = net.fabricmc.loader.api.FabricLoader.getInstance().getMappingResolver();
+			String owner = resolver.mapClassName("intermediary", "net.minecraft.class_310");
+			String name = resolver.mapFieldName("intermediary", "net.minecraft.class_310", "field_1726", "Lnet/minecraft/class_320;");
+			java.lang.reflect.Field field = Class.forName(owner).getDeclaredField(name);
+			field.setAccessible(true);
+			field.set(client, session);
+			return true;
+		} catch (Throwable t) {
+			BlazeMorphx.LOGGER.warn("Reflection session replace failed", t);
+			return false;
 		}
 	}
 

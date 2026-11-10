@@ -13,9 +13,9 @@ import net.minecraft.client.texture.NativeImageBackedTexture;
 import net.minecraft.util.Identifier;
 
 import java.io.InputStream;
-import java.lang.reflect.Method;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -25,12 +25,12 @@ public final class VideoBackgroundRenderer {
 	private final AtomicBoolean running = new AtomicBoolean();
 	private final AtomicBoolean paused = new AtomicBoolean();
 	private final AtomicReference<int[]> pendingFrame = new AtomicReference<>();
-	private final AtomicInteger widthOut = new AtomicInteger(960);
-	private final AtomicInteger heightOut = new AtomicInteger(540);
+	private final AtomicInteger widthOut = new AtomicInteger(640);
+	private final AtomicInteger heightOut = new AtomicInteger(360);
 	private Thread decoderThread;
 	private NativeImageBackedTexture texture;
-	private int texWidth = 960;
-	private int texHeight = 540;
+	private int texWidth = 640;
+	private int texHeight = 360;
 	private volatile boolean failed;
 	private volatile String status = "idle";
 	private Path activeFile;
@@ -41,9 +41,9 @@ public final class VideoBackgroundRenderer {
 		stop();
 		failed = false;
 		activeFile = file;
-		if (file == null || !Files.isRegularFile(file)) {
+		if (file == null || !Files.isRegularFile(file) || !hasFfmpeg()) {
 			failed = true;
-			status = "missing";
+			status = "unavailable";
 			return;
 		}
 		running.set(true);
@@ -80,14 +80,24 @@ public final class VideoBackgroundRenderer {
 	}
 
 	public void uploadAndDraw(DrawContext context, int screenW, int screenH) {
+		if (failed) {
+			return;
+		}
 		texWidth = Math.max(1, widthOut.get());
 		texHeight = Math.max(1, heightOut.get());
 		try {
-			ensureTexture();
 			int[] frame = pendingFrame.getAndSet(null);
-			if (frame != null && texture != null && texture.getImage() != null) {
-				NativeImage image = texture.getImage();
-				if (image.getWidth() == texWidth && image.getHeight() == texHeight && frame.length >= texWidth * texHeight) {
+			if (frame == null) {
+				if (texture == null) {
+					return;
+				}
+			} else {
+				ensureTexture();
+				if (texture != null && texture.getImage() != null
+					&& texture.getImage().getWidth() == texWidth
+					&& texture.getImage().getHeight() == texHeight
+					&& frame.length >= texWidth * texHeight) {
+					NativeImage image = texture.getImage();
 					int i = 0;
 					for (int y = 0; y < texHeight; y++) {
 						for (int x = 0; x < texWidth; x++) {
@@ -99,7 +109,6 @@ public final class VideoBackgroundRenderer {
 				}
 			}
 			if (texture == null) {
-				failed = true;
 				return;
 			}
 			ModConfig config = ConfigManager.get();
@@ -114,41 +123,12 @@ public final class VideoBackgroundRenderer {
 
 	private void decodeLoop() {
 		status = "starting";
-		if (tryJavaCv()) {
-			return;
-		}
 		if (tryFfmpegCli()) {
 			return;
 		}
 		failed = true;
 		status = "fallback";
 		running.set(false);
-	}
-
-	private boolean tryJavaCv() {
-		try {
-			Path cache = ConfigManager.directory().resolve("natives");
-			Files.createDirectories(cache);
-			System.setProperty("org.bytedeco.javacpp.cachedir", cache.toAbsolutePath().toString());
-			System.setProperty("org.bytedeco.javacpp.maxbytes", "0");
-			System.setProperty("org.bytedeco.javacpp.maxphysicalbytes", "0");
-			Class<?> decoder = Class.forName("com.blazemorphx.customization.JavaCvDecoder");
-			Method method = decoder.getMethod(
-				"decode",
-				Path.class,
-				AtomicBoolean.class,
-				AtomicBoolean.class,
-				AtomicReference.class,
-				AtomicInteger.class,
-				AtomicInteger.class
-			);
-			status = "javacv";
-			Object result = method.invoke(null, activeFile, running, paused, pendingFrame, widthOut, heightOut);
-			return Boolean.TRUE.equals(result);
-		} catch (Throwable t) {
-			BlazeMorphx.LOGGER.info("JavaCV video path unavailable, trying FFmpeg CLI");
-			return false;
-		}
 	}
 
 	private boolean tryFfmpegCli() {
@@ -180,7 +160,7 @@ public final class VideoBackgroundRenderer {
 				pendingFrame.set(convertRgb(raw, texWidth, texHeight));
 			}
 			destroyProcess();
-			return true;
+			return pendingFrame.get() != null || lastUploadNs > 0;
 		} catch (Throwable t) {
 			destroyProcess();
 			return false;
@@ -253,6 +233,22 @@ public final class VideoBackgroundRenderer {
 		if (ffmpegProcess != null) {
 			ffmpegProcess.destroy();
 			ffmpegProcess = null;
+		}
+	}
+
+	public static boolean hasFfmpeg() {
+		try {
+			Process process = new ProcessBuilder("ffmpeg", "-hide_banner", "-version")
+				.redirectError(ProcessBuilder.Redirect.DISCARD)
+				.redirectOutput(ProcessBuilder.Redirect.DISCARD)
+				.start();
+			if (!process.waitFor(2, TimeUnit.SECONDS)) {
+				process.destroyForcibly();
+				return false;
+			}
+			return process.exitValue() == 0;
+		} catch (Throwable t) {
+			return false;
 		}
 	}
 

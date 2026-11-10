@@ -83,9 +83,12 @@ public final class BackgroundManager {
 		}
 		ModConfig config = ConfigManager.get();
 		try {
+			boolean drewVideo = false;
 			if (config.animatedBackground && !video.isFailed()) {
 				video.uploadAndDraw(context, width, height);
-			} else {
+				drewVideo = video.lastUploadNs() > 0 && !video.isFailed();
+			}
+			if (!drewVideo) {
 				fallback.render(context, width, height, delta);
 			}
 		} catch (Throwable t) {
