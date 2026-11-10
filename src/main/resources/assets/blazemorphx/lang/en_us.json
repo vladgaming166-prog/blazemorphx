@@ -1,0 +1,12 @@
+{
+	"mod.blazemorphx.name": "Blaze Morphx",
+	"category.blazemorphx": "Blaze Morphx",
+	"key.blazemorphx.menu": "Open Blaze Morphx Menu",
+	"key.blazemorphx.hud_editor": "Open HUD Editor",
+	"key.blazemorphx.stopwatch": "Toggle Stopwatch",
+	"screen.blazemorphx.main": "Blaze Morphx",
+	"screen.blazemorphx.accounts": "Account Manager",
+	"screen.blazemorphx.customization": "Customization",
+	"screen.blazemorphx.optimization": "Optimization",
+	"screen.blazemorphx.settings": "Settings"
+}

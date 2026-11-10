@@ -1,0 +1,87 @@
+plugins {
+	id 'fabric-loom' version "${loom_version}"
+	id 'maven-publish'
+}
+
+version = project.mod_version
+group = project.maven_group
+
+base {
+	archivesName = project.archives_base_name
+}
+
+repositories {
+	mavenCentral()
+}
+
+loom {
+	accessWidenerPath = file("src/main/resources/blazemorphx.accesswidener")
+}
+
+dependencies {
+	minecraft "com.mojang:minecraft:${project.minecraft_version}"
+	mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
+	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+
+	include(implementation('net.raphimc:MinecraftAuth:5.0.2') {
+		exclude group: 'com.google.code.gson'
+		exclude group: 'org.slf4j'
+	})
+	include(implementation('net.lenni0451.commons:httpclient:1.9.2'))
+	include(implementation('net.lenni0451.commons:gson:1.9.2') {
+		exclude group: 'com.google.code.gson'
+	})
+
+	include(implementation('org.bytedeco:javacv:1.5.11') {
+		exclude group: 'org.bytedeco', module: 'opencv'
+		exclude group: 'org.bytedeco', module: 'openblas'
+		exclude group: 'org.bytedeco', module: 'flycapture'
+		exclude group: 'org.bytedeco', module: 'libdc1394'
+		exclude group: 'org.bytedeco', module: 'libfreenect'
+		exclude group: 'org.bytedeco', module: 'libfreenect2'
+		exclude group: 'org.bytedeco', module: 'librealsense'
+		exclude group: 'org.bytedeco', module: 'librealsense2'
+		exclude group: 'org.bytedeco', module: 'videoinput'
+		exclude group: 'org.bytedeco', module: 'artoolkitplus'
+		exclude group: 'org.bytedeco', module: 'flandmark'
+		exclude group: 'org.bytedeco', module: 'leptonica'
+		exclude group: 'org.bytedeco', module: 'tesseract'
+	})
+	include(implementation('org.bytedeco:ffmpeg:7.1-1.5.11'))
+	include(implementation('org.bytedeco:ffmpeg:7.1-1.5.11:linux-x86_64'))
+	include(implementation('org.bytedeco:ffmpeg:7.1-1.5.11:windows-x86_64'))
+	include(implementation('org.bytedeco:ffmpeg:7.1-1.5.11:macosx-x86_64'))
+	include(implementation('org.bytedeco:ffmpeg:7.1-1.5.11:macosx-arm64'))
+	include(implementation('org.bytedeco:javacpp:1.5.11'))
+	include(implementation('org.bytedeco:javacpp:1.5.11:linux-x86_64'))
+	include(implementation('org.bytedeco:javacpp:1.5.11:windows-x86_64'))
+	include(implementation('org.bytedeco:javacpp:1.5.11:macosx-x86_64'))
+	include(implementation('org.bytedeco:javacpp:1.5.11:macosx-arm64'))
+}
+
+processResources {
+	def version = project.version
+	inputs.property "version", version
+
+	filesMatching("fabric.mod.json") {
+		expand "version": version
+	}
+}
+
+tasks.withType(JavaCompile).configureEach {
+	it.options.release = 21
+	it.options.encoding = "UTF-8"
+}
+
+java {
+	withSourcesJar()
+	sourceCompatibility = JavaVersion.VERSION_21
+	targetCompatibility = JavaVersion.VERSION_21
+}
+
+jar {
+	from("LICENSE") {
+		rename { "${it}_${project.base.archivesName.get()}" }
+	}
+}
